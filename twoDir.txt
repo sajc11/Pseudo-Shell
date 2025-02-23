@@ -1,0 +1,10 @@
+path /bin /usr/bin /usr/local/bin
+mkdir -p testDir/A
+mkdir -p testDir/B
+mkdir -p testDir/C
+touch testDir/A/file_A
+touch testDir/B/file_B
+touch testDir/C/file_C
+cat < message.txt | grep 1 | cut -f 1 > testDir/A/file_A
+cat < message.txt | grep 2 | cut -f 1 > testDir/A/file_B
+cat < message.txt | grep 3 | cut -f 1 > testDir/A/file_C
