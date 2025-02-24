@@ -1,0 +1,2 @@
+gush> /Users/sophiacastor/Desktop/Everything/College/S25/COSC_3020/Projects/Pseudo-Shell/tests
+gush> 

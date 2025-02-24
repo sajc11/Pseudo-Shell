@@ -1,32 +1,54 @@
 # Makefile for gush
-
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -g
 TARGET = gush
-OBJS = main.o parser.o builtins.o exec.o history.o utils.o
 
+# Define the source and object directories
+SRCDIR = src
+OBJDIR = obj
+
+# List all source files and generate object file names
+SRCS = $(wildcard $(SRCDIR)/*.c)
+OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+
+# Debug information
+$(info Sources found: $(SRCS))
+$(info Objects to build: $(OBJS))
+
+.PHONY: all clean test
+
+# Default target
 all: $(TARGET)
+	@echo "Build complete: $(TARGET)"
 
+# Debug build
+debug:
+	$(MAKE) DEBUG=1
+
+# Create the object directory
+$(OBJDIR):
+	@echo "Creating directory: $(OBJDIR)"
+	mkdir -p $(OBJDIR)
+
+# Link the final executable
 $(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	@echo "Linking: $@ from $^"
+	$(CC) $(CFLAGS) -o $@ $^
 
-main.o: main.c shell.h
-	$(CC) $(CFLAGS) -c main.c
+# Generic rule for object files
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(SRCDIR)/shell.h | $(OBJDIR)
+	@echo "Compiling: $< -> $@"
+	$(CC) $(CFLAGS) -c $< -o $@
 
-parser.o: parser.c shell.h
-	$(CC) $(CFLAGS) -c parser.c
-
-builtins.o: builtins.c shell.h
-	$(CC) $(CFLAGS) -c builtins.c
-
-exec.o: exec.c shell.h
-	$(CC) $(CFLAGS) -c exec.c
-
-history.o: history.c shell.h
-	$(CC) $(CFLAGS) -c history.c
-
-utils.o: utils.c shell.h
-	$(CC) $(CFLAGS) -c utils.c
+# Target to build the parser test program - run with make test_parser
+test_parser: tests/test_parser.c src/parser.c src/utils.c src/shell.h
+	@echo "Compiling test_parser..."
+	$(CC) $(CFLAGS) -I$(SRCDIR) -o test_parser tests/test_parser.c src/parser.c src/utils.c
 
 clean:
-	rm -f $(TARGET) $(OBJS)
+	@echo "Cleaning build artifacts"
+	rm -rf $(OBJDIR) $(TARGET)
+
+test:
+	@echo "Running tests..."
+	@bash tests/run_tests.sh

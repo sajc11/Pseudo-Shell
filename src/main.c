@@ -3,105 +3,165 @@
 char **g_path = NULL;
 int g_path_count = 0;
 
-int main(int argc, char *argv[]) {
-    FILE *input = stdin;
-    int interactive = 1;
+static int initialize_path(void) {
+    // Keep existing initialization code
+    const char *default_paths[] = {
+        "/bin",
+        "/usr/bin",
+        "/usr/local/bin",
+        "/sbin",
+        "/usr/sbin"
+    };
     
-    // Initialize default path to /bin
-    g_path_count = 1;
-    g_path = malloc(sizeof(char*) * 1);
+    g_path_count = sizeof(default_paths) / sizeof(default_paths[0]);
+    g_path = malloc(sizeof(char*) * g_path_count);
     if (!g_path) {
         print_error();
-        exit(1);
+        return 0;
     }
-    g_path[0] = strdup("/bin");
     
-    // If a batch file is provided, run in batch mode (no prompt)
-    if (argc == 2) {
-        interactive = 0;
-        input = fopen(argv[1], "r");
-        if (!input) {
+    for (int i = 0; i < g_path_count; i++) {
+        g_path[i] = strdup(default_paths[i]);
+        if (!g_path[i]) {
+            for (int j = 0; j < i; j++) {
+                free(g_path[j]);
+            }
+            free(g_path);
+            g_path = NULL;
             print_error();
-            exit(1);
+            return 0;
         }
-    } else if (argc > 2) {
-        print_error();
-        exit(1);
+        DEBUG_PRINTF("Added path: %s\n", g_path[i]);
     }
-    
-    char *line = NULL;
-    size_t len = 0;
-    ssize_t read;
-    
-    while (1) {
-        if (interactive) {
-            printf("gush> ");
-        }
-        read = getline(&line, &len, input);
-        if (read == -1) {
-            break;
-        }
-        if (line[read - 1] == '\n') {
-            line[read - 1] = '\0';
-        }
-        if (line[0] == '\0') continue;
-        add_history(line);
-        process_line(line);
-    }
-    
+    DEBUG_PRINT("Path initialized successfully\n");
+    return 1;
+}
+
+static void cleanup_shell(char *line, FILE *input, int interactive) {
+    DEBUG_PRINT("Starting shell cleanup\n");
     free(line);
-    // Use the encapsulated history cleanup function.
     free_history_entries();
-    // Free search path memory
     for (int i = 0; i < g_path_count; i++) {
         free(g_path[i]);
     }
     free(g_path);
-    if (!interactive) {
+    if (!interactive && input != stdin) {
         fclose(input);
     }
-    return 0;
+    DEBUG_PRINT("Shell cleanup complete\n");
 }
 
-// process_line() dispatches a single input line by parsing it and then
-// either calling the built-in or external command routines (including pipelines).
 void process_line(char *line) {
-    int background;
-    char *input_file, *output_file;
-    int pipe_count;
-    char **tokens = parse_line(line, &background, &input_file, &output_file, &pipe_count);
+    DEBUG_PRINTF("Processing line: %s\n", line);
     
-    if (tokens[0] == NULL) {
-        free(tokens);
+    // Skip empty lines and comments
+    if (!line || line[0] == '\0' || line[0] == '#') {
         return;
     }
     
-    if (pipe_count == 0) {
-        if (is_builtin(tokens)) {
-            execute_builtin(tokens);
-        } else {
-            execute_external(tokens, background, input_file, output_file);
-        }
-    } else {
-        // Split tokens into separate commands for each pipeline segment.
-        int num_cmds = pipe_count + 1;
-        char ***commands = malloc(sizeof(char**) * num_cmds);
-        if (!commands) {
-            print_error();
-            free(tokens);
+    CommandList *cmdList = parse_line_advanced(line);
+    if (!cmdList) {
+        DEBUG_PRINT("Parsing failed\n");
+        return;
+    }
+
+    // Check if this is a pipeline (multiple commands)
+    if (cmdList->count > 1) {
+        DEBUG_PRINTF("Processing pipeline with %d commands\n", cmdList->count);
+        execute_pipeline(cmdList->commands, cmdList->count, cmdList->commands[0]->background);
+    } else if (cmdList->count == 1) {
+        Command *cmd = cmdList->commands[0];
+        if (!cmd->tokens[0]) {
+            DEBUG_PRINT("Empty command\n");
+            free_command_list(cmdList);
             return;
         }
-        int cmd_index = 0;
-        commands[cmd_index] = &tokens[0];
-        for (int i = 0; tokens[i] != NULL; i++) {
-            if (strcmp(tokens[i], "|") == 0) {
-                tokens[i] = NULL;
-                cmd_index++;
-                commands[cmd_index] = &tokens[i+1];
-            }
+        
+        // Single command processing
+        if (is_builtin(cmd->tokens)) {
+            DEBUG_PRINT("Executing builtin command\n");
+            execute_builtin(cmd->tokens);
+        } else {
+            DEBUG_PRINT("Executing external command\n");
+            execute_external(cmd->tokens, cmd->background, 
+                           cmd->input_file, cmd->output_file);
         }
-        execute_pipeline(commands, num_cmds, background);
-        free(commands);
     }
-    free(tokens);
+
+    free_command_list(cmdList);
+}
+
+int main(int argc, char *argv[]) {
+    FILE *input = stdin;
+    int interactive = 1;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    
+    DEBUG_PRINT("Shell starting\n");
+    
+    if (!initialize_path()) {
+        return 1;
+    }
+    
+    if (argc > 2) {
+        DEBUG_PRINT("Too many arguments\n");
+        print_error();
+        return 1;
+    }
+    
+    if (argc == 2) {
+        DEBUG_PRINTF("Opening batch file: %s\n", argv[1]);
+        interactive = 0;
+        input = fopen(argv[1], "r");
+        if (!input) {
+            DEBUG_PRINT("Failed to open batch file\n");
+            print_error();
+            return 1;
+        }
+    }
+    
+    // Main command loop
+    while (1) {
+        if (interactive) {
+            printf("gush> ");
+            fflush(stdout);
+        }
+        
+        read = getline(&line, &len, input);
+        if (read == -1) {
+            break;  // End of file or error
+        }
+        
+        // Remove trailing newline
+        if (read > 0 && line[read - 1] == '\n') {
+            line[read - 1] = '\0';
+            read--;
+        }
+
+        // Skip empty lines and comments
+        if (read == 0 || line[0] == '#') {
+            continue;
+        }
+
+        if (!interactive) {
+            DEBUG_PRINTF("Batch processing line: %s\n", line);
+        }
+
+        // Check if the command is "history" (or starts with "history" and is only that command)
+        // If so, do not add it to history.
+        if (strncmp(line, "history", 7) != 0 || (line[7] != '\0' && !isspace(line[7]))) {
+            add_history(line);
+        }
+        
+        process_line(line);
+        
+        if (interactive) {
+            fflush(stdout);
+        }
+    }
+    
+    cleanup_shell(line, input, interactive);
+    DEBUG_PRINT("Shell exiting\n");
+    return 0;
 }
