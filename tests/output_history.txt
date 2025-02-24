@@ -1,7 +1,9 @@
 gush> message.txt
 new_output.txt
+output_batch.txt
 output_cd.txt
 output_history.txt
+output_pipe.txt
 output_pwd.txt
 run_tests.sh
 testDir
@@ -12,7 +14,6 @@ wasteTime.c
 gush> /Users/sophiacastor/Desktop/Everything/College/S25/COSC_3020/Projects/Pseudo-Shell/tests
 gush> 1 ls
 2 pwd
-3 history
 gush> pwd
 /Users/sophiacastor/Desktop/Everything/College/S25/COSC_3020/Projects/Pseudo-Shell/tests
 gush> 

@@ -219,8 +219,15 @@ Pseudo-Shell/
 ├── documents/
 │   ├── guShell_Example_Tests.pdf
 │   ├── pseudo_shell.pdf
-│   └── screenshots/           # Contains validation screenshots
-│       └── ... 
+│   └── screenshots/                # organized validation screenshots
+│       ├── Background-Processing/  # includes prallel background processes
+│       ├── Batch-Mode/             # batch mode output - `testDir/` files
+│       ├── Commands/               # gush commands - basic and external commands
+│       ├── Error-Handling/         # error handling output for multiple error cases
+│       ├── Make-Commands/          # make commands - clean, debug, test_parser, general
+│       ├── Pipes/                  # single, multiple, and redirected pipes
+│       ├── Redirection/            # input, output, and combined redirection
+│       └── Run-Tests/              # run_tests.sh output - `output_*.txt` files
 ├── src/
 │   ├── builtins.c
 │   ├── exec.c
