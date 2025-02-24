@@ -47,7 +47,7 @@ test_parser: tests/test_parser.c src/parser.c src/utils.c src/shell.h
 
 clean:
 	@echo "Cleaning build artifacts"
-	rm -rf $(OBJDIR) $(TARGET)
+	rm -rf $(OBJDIR) $(TARGET) test_parser
 
 test:
 	@echo "Running tests..."

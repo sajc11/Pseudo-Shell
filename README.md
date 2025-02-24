@@ -190,6 +190,8 @@ This rebuilds the project with the `DEBUG` flag enabled, causing the shell to pr
    The test program calls `parse_line_advanced()` on sample inputs (such as `ls -l`, `cat < message.txt | grep Joy`, etc.) and prints the tokenized output, including background flags and redirection information.
 3. **Validation**:  
    Confirm that the output correctly reflects the intended parsing behavior.
+4. **Cleaning**:
+    Use the `make clean` command to remove both the main executable (`gush`) and the `test_parser` executable, along with all object files in the `obj/` directory.
 
 ---
 

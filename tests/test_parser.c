@@ -1,4 +1,3 @@
-// tests/test_parser_advanced.c
 #include "shell.h"
 #include <stdio.h>
 #include <stdlib.h>

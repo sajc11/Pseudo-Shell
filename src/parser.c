@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <errno.h>
 
-// Maximum tokens per command segment (adjust as needed)
+// Maximum tokens per command segment
 #define MAX_TOKENS 128
 
 /* Helper: Remove surrounding quotes and handle backslash escapes.
@@ -50,8 +50,8 @@ static char *process_token(const char *token) {
 }
 
 /* Helper: Expand environment variables.
- * If a token starts with '$', replace it with its environment variable value.
- * This simple implementation handles tokens that begin with '$' entirely.
+ * - If a token starts with '$', replace it with its environment variable value.
+ * - This simple implementation handles tokens that begin with '$' entirely.
  */
 static char *expand_env(const char *token) {
     if (token[0] != '$') {
@@ -73,10 +73,12 @@ static char *expand_env(const char *token) {
 }
 
 /* Helper: Perform a simple command substitution.
- * Looks for the first occurrence of "$(" and a matching ")".
- * Executes the inner command using popen, reads its output, and replaces that portion.
+ * - Looks for the first occurrence of "$(" and a matching ")".
+ * - Executes the inner command using popen, reads its output, and replaces that portion.
+ * 
  * Note: This implementation supports only one substitution per token.
  */
+
 static char *command_substitute(const char *token) {
     char *start = strstr(token, "$(");
     if (!start)
